@@ -1,0 +1,186 @@
+﻿@page "/usuario"
+@page "/usuario/{Id:int}"
+@inject IPersonaServicio _personaServicio
+@inject IDepartamentoServicio departamentoServicio;
+@inject IPuestoServicio puestoServicio;
+@inject IPerfilServicio perfilServicio;
+@inject NavigationManager _navServicio
+@inject IToastService toastService
+@inject Radzen.DialogService dialogService
+@attribute [Authorize(Roles = "Usuario")]
+
+@* <div class="row justify-content-center  mt-3">
+    <p class="col-sm-12 col-md-8 col-xl-10 h4 mt-2">@titulo</p>
+</div> *@
+<div class="row justify-content-center  mt-3">
+    <div class="col-sm-12 col-md-8 col-xl-10">
+        <EditForm Model="modelo" OnValidSubmit="GuardarCambios">
+            <DataAnnotationsValidator></DataAnnotationsValidator>
+
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light" id="basic-addon3">Nombre Completo</span>
+                <input type="text" class="form-control" @bind-value="modelo.NombreCompleto" required>
+                @* <ValidationMessage For="@(()=>modelo.NombreCompleto)" /> *@
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light" id="basic-addon3">Correo</span>
+                <input type="text" class="form-control" @bind-value="modelo.Correo" autocomplete="off" required>
+                @* <ValidationMessage For="@(()=>modelo.Correo)" /> *@
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light" id="basic-addon3">Departamento</span>
+                <RadzenDropDown @bind-Value="modelo.IdDepartamento" Data=@listaDep TextProperty="Nombre" ValueProperty="IdDepartamento" Name="DropDownBindValue" class="form-control" />
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light" id="basic-addon3">Puesto</span>
+                <RadzenDropDown @bind-Value="modelo.IdPuesto" Data=@listaPuesto TextProperty="Nombre" ValueProperty="IdPuesto" Name="DropDownBindValue" class="form-control" />
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light" id="basic-addon3">Perfil</span>
+                <RadzenDropDown @bind-Value="modelo.IdRol" Data=@listaPerfil TextProperty="Nombre" ValueProperty="IdPerfil" Name="DropDownBindValue" class="form-control" />
+            </div>
+            <div class="input-group mb-3" id="divContraseña" style="visibility: @display">
+                <span class="input-group-text bg-light" id="basic-addon3">Contraseña</span>
+                <input type="password" class="form-control" @bind-value="modelo.Clave" autocomplete="off" required>
+                @* <ValidationMessage For="@(()=>modelo.Clave)" /> *@
+            </div>
+            <div class="input-group mb-3" id="divConfirmarContraseña" style="visibility: @display">
+                <span class="input-group-text bg-light" id="basic-addon3">Confirmar Contraseña</span>
+                <input type="password" class="form-control" @bind-value="modelo.ConfirmarClave" required>
+                @* <ValidationMessage For="@(()=>modelo.ConfirmarClave)" /> *@
+            </div>
+            <div class="mb-3 center text-center">
+                <button type="submit" class="btn btn-primary" style="width:130px">@boton</button>
+                <a href="/usuarios" class="btn btn-secondary" style="width:130px">Volver</a>
+            </div>
+        </EditForm>
+       
+
+    </div>
+
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private string titulo = "Nuevo Usuario";
+    private string boton = "Crear";
+    private string display = "visible";
+    private PersonaDTO modelo = new PersonaDTO();
+    private List<DepartamentoDTO>? listaDep = null;
+    private List<PuestoDTO>? listaPuesto = null;
+    private List<PerfilDTO>? listaPerfil = null;
+    string value_departamento = "Seleccionar Departamento...";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ObtenerDepartamentos();
+        await ObtenerPuestos();
+        await ObtenerPerfiles();
+    }
+
+    private async Task ObtenerDepartamentos(string Valor = "")
+    {
+        var response = await departamentoServicio.Lista(Valor);
+
+        if (response.EsCorrecto)
+        {
+            listaDep = (List<DepartamentoDTO>)response.Resultado!;
+        }
+        else
+        {
+            listaDep = new List<DepartamentoDTO>();
+        }
+    }
+
+    private async Task ObtenerPuestos(string Valor = "")
+    {
+        var response = await puestoServicio.Lista(Valor);
+
+        if (response.EsCorrecto)
+        {
+            listaPuesto = (List<PuestoDTO>)response.Resultado!;
+        }
+        else
+        {
+            listaPuesto = new List<PuestoDTO>();
+        }
+    }
+
+    private async Task ObtenerPerfiles(string Valor = "")
+    {
+        var response = await perfilServicio.Lista(Valor);
+
+        if (response.EsCorrecto)
+        {
+            listaPerfil = (List<PerfilDTO>)response.Resultado!;
+        }
+        else
+        {
+            listaPerfil = new List<PerfilDTO>();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if(Id != 0)
+        {
+            titulo = "Editar Usuario";
+            boton = "Actualizar";
+            display = "hidden";
+
+            var response = await _personaServicio.Obtener(Id);
+            if (response.EsCorrecto!)
+            {
+                modelo = (PersonaDTO)response.Resultado!;
+                modelo.ConfirmarClave = modelo.Clave;
+            }
+            else
+                toastService.ShowWarning(response.Mensaje!);
+        }
+    }
+
+
+    private async Task GuardarCambios()
+    {
+        if(modelo.Clave != modelo.ConfirmarClave)
+        {
+            toastService.ShowWarning("Las contraseñas no coinciden");
+            return;
+        }
+
+        bool respuesta = true;
+        string mensaje = string.Empty;
+
+        if(Id != 0)
+        {
+            var response = await _personaServicio.Editar(modelo);
+            if (response.EsCorrecto)
+                mensaje = "Usuario modificado";
+            else
+            {
+                respuesta = false;
+                mensaje = "No se pudo editar";
+            }
+        }
+        else
+        {
+            // modelo.Rol = "Usuario";
+            var response = await _personaServicio.Crear(modelo);
+            if (response.EsCorrecto)
+                mensaje = "Usuario creado";
+            else
+            {
+                respuesta = false;
+                mensaje = "No se pudo crear";
+            }
+        }
+
+        if (respuesta)
+        {
+            toastService.ShowSuccess(mensaje);
+            _navServicio.NavigateTo("/usuarios");
+        }else
+            toastService.ShowError(mensaje);
+    }
+
+}

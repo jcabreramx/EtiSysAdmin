@@ -1,0 +1,99 @@
+﻿@page "/perfil"
+@page "/perfil/{Id:int}"
+
+@inject IPerfilServicio _perfilServicio
+@inject NavigationManager _navServicio
+@inject IToastService toastService
+@attribute [Authorize(Roles = "Usuario")]
+
+<div class="row justify-content-center  mt-3">
+
+    <div class="col-sm-12 col-md-8 col-xl-10">
+
+        <EditForm Model="modelo" OnValidSubmit="GuardarCambios">
+            <DataAnnotationsValidator></DataAnnotationsValidator>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light">Nombre</span>
+                <input type="text" class="form-control" @bind-value="modelo.Nombre">
+                <ValidationMessage For="@(()=>modelo.Nombre)" />
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light">Activo </span>
+                <RadzenStack class="text-center" style="margin: 8px 0 0 40px">
+                    <RadzenCheckBox @bind-Value=modelo.Estatus TValue="bool?" />
+                </RadzenStack>
+            </div>
+            <div class="mb-3 text-center">
+                <button type="submit" class="btn btn-primary" style="width:130px">@boton</button>
+                <a href="/usuarios" class="btn btn-secondary" style="width:130px">Volver</a>
+            </div>
+        </EditForm>
+
+
+    </div>
+
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private string titulo = "Nuevo Perfil";
+    private string boton = "Crear";
+    private PerfilDTO modelo = new PerfilDTO();
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id != 0)
+        {
+            titulo = "Editar Perfil";
+            boton = "Actualizar";
+
+            var response = await _perfilServicio.Obtener(Id);
+            if (response.EsCorrecto!)
+            {
+                modelo = (PerfilDTO)response.Resultado!;
+            }
+            else
+                toastService.ShowWarning(response.Mensaje!);
+        }
+    }
+
+
+    private async Task GuardarCambios()
+    {
+
+        bool respuesta = true;
+        string mensaje = string.Empty;
+
+        if (Id != 0)
+        {
+            var response = await _perfilServicio.Editar(modelo);
+            if (response.EsCorrecto)
+                mensaje = "Perfil modificado";
+            else
+            {
+                respuesta = false;
+                mensaje = "No se pudo editar";
+            }
+        }
+        else
+        {
+            var response = await _perfilServicio.Crear(modelo);
+            if (response.EsCorrecto)
+                mensaje = "Perfil creado";
+            else
+            {
+                respuesta = false;
+                mensaje = "No se pudo crear";
+            }
+        }
+
+        if (respuesta)
+        {
+            toastService.ShowSuccess(mensaje);
+            _navServicio.NavigateTo("/usuarios");
+        }
+        else
+            toastService.ShowError(mensaje);
+    }
+}

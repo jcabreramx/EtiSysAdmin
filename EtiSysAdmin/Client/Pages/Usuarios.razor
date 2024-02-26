@@ -1,0 +1,379 @@
+﻿@page "/usuarios"
+@inject IPersonaServicio personaServicio;
+@inject IDepartamentoServicio departamentoServicio;
+@inject IPuestoServicio puestoServicio;
+@inject IPerfilServicio perfilServicio;
+@inject IToastService toastService;
+@inject NavigationManager _navServicio
+@inject SweetAlertService Swal;
+@inject BlazorSpinner.SpinnerService _spinnerService
+@using Radzen;
+@inject DialogService dialogService
+@attribute [Authorize(Roles = "Usuario")]
+
+@* <div class="loanding">
+    <div id="circle">
+        <div class="loader">
+        </div>
+    </div>
+</div>*@
+
+<RadzenTabs Change=@OnChange TabPosition="TabPosition.Top" RenderMode="TabRenderMode.Client" Style="margin-top: 10px">
+    <Tabs>
+        <RadzenTabsItem Text="Usuarios">
+            <RadzenDataGrid Data="@lista" TItem="PersonaDTO" AllowAlternatingRows="false" AllowSorting="true" PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                            ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" Style="border-radius: 10px">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PersonaDTO" Property="IdPersona" Title="Id" Width="30px" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn CssClass="rz-text-capitalize" TItem="PersonaDTO" Property="NombreCompleto" Title="Nombre" Width="180px" TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn TItem="PersonaDTO" Property="Correo" Title="Correo" Width="180px" TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn TItem="PersonaDTO" Property="Rol" Title="Perfil" TextAlign="TextAlign.Center" Width="80px" />
+                    <RadzenDataGridColumn TItem="PersonaDTO" Context="persona" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="80px">
+                        <Template Context="persona">
+                            <RadzenButton Icon="edit" Click=@(args => editarUsuario(persona.IdPersona)) ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                            </RadzenButton>
+                            <RadzenButton Icon="delete" Click=@(args => Eliminar(persona)) ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                            </RadzenButton>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+            <RadzenButton Icon="add" Click=@(args => nuevoUsuario()) ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" class="rz-border-radius-10 rz-shadow-10 btn-flotante" Style="background-color: #132f52 !important" />
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="Departamentos">
+            <RadzenDataGrid Data="@listaDep" TItem="DepartamentoDTO" AllowAlternatingRows="false" AllowSorting="true" PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                            ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" Style="border-radius: 10px">
+                <Columns>
+                    <RadzenDataGridColumn TItem="DepartamentoDTO" Property="IdDepartamento" Title="Id" Width="20px" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="DepartamentoDTO" Property="Nombre" Title="Departamento" Width="180px" TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn TItem="DepartamentoDTO" Context="departamento" Title="Estatus" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="80px">
+                        <Template Context="departamento">
+                            <RadzenCheckBox @bind-Value=departamento.Estatus ReadOnly />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="DepartamentoDTO" Title="Estatus" Context="departamento" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="80px">
+                        <Template Context="departamento">
+                            <RadzenButton Icon="edit" Click=@(args => editarDepartamento(departamento.IdDepartamento)) ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                            </RadzenButton>
+                            <RadzenButton Icon="delete" Click=@(args => EliminarDepartamento(departamento)) ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                            </RadzenButton>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+            <RadzenButton Icon="add" Click=@(args => nuevoDepartamento()) ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" class="rz-border-radius-10 rz-shadow-10 btn-flotante" Style="background-color: #132f52 !important" />
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="Puestos">
+            <RadzenDataGrid Data="@listaPuesto" TItem="PuestoDTO" AllowAlternatingRows="false" AllowSorting="true" PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                            ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" Style="border-radius: 10px">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PuestoDTO" Property="IdPuesto" Title="Id" Width="20px" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="PuestoDTO" Property="Nombre" Title="Puesto" Width="180px" TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn TItem="PuestoDTO" Context="puesto" Title="Estatus" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="80px">
+                        <Template Context="puesto">
+                             <RadzenCheckBox @bind-Value=puesto.Estatus ReadOnly />
+                         </Template>
+                     </RadzenDataGridColumn>
+                     <RadzenDataGridColumn TItem="PuestoDTO" Context="puesto" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="80px">
+                         <Template Context="puesto">
+                             <RadzenButton Icon="edit" Click=@(args => editarPuesto(puesto.IdPuesto)) ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                             </RadzenButton>
+                             <RadzenButton Icon="delete" Click=@(args => EliminarPuesto(puesto)) ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                             </RadzenButton>
+                         </Template>
+                     </RadzenDataGridColumn>
+                 </Columns>
+             </RadzenDataGrid>
+             <RadzenButton Icon="add" Click=@(args => nuevoPuesto()) ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" class="rz-border-radius-10 rz-shadow-10 btn-flotante" Style="background-color: #132f52 !important" />
+         </RadzenTabsItem>
+         <RadzenTabsItem Text="Perfiles">
+             <RadzenDataGrid Data="@listaPerfil" TItem="PerfilDTO" AllowAlternatingRows="false" AllowSorting="true" PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                             ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" Style="border-radius: 10px">
+                 <Columns>
+                     <RadzenDataGridColumn TItem="PerfilDTO" Property="IdPerfil" Title="Id" Width="20px" TextAlign="TextAlign.Center" />
+                     <RadzenDataGridColumn TItem="PerfilDTO" Property="Nombre" Title="Perfil" Width="180px" TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn TItem="PerfilDTO" Context="perfil" Title="Estatus" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="80px">
+                         <Template Context="perfil">
+                             <RadzenCheckBox @bind-Value=perfil.Estatus ReadOnly />
+                        </Template>
+                     </RadzenDataGridColumn>
+                     <RadzenDataGridColumn TItem="PerfilDTO" Context="perfil" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Width="80px">
+                         <Template Context="perfil">
+                             <RadzenButton Icon="edit" Click=@(args => editarPerfil(perfil.IdPerfil)) ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                             </RadzenButton>
+                             <RadzenButton Icon="delete" Click=@(args => EliminarPerfil(perfil)) ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium">
+                             </RadzenButton>
+                         </Template>
+                     </RadzenDataGridColumn>
+                 </Columns>
+             </RadzenDataGrid>
+             <RadzenButton Icon="add" Click=@(args => nuevoPerfil()) ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" class="rz-border-radius-10 rz-shadow-10 btn-flotante" Style="background-color: #132f52 !important" />
+         </RadzenTabsItem>
+     </Tabs>
+ </RadzenTabs>
+
+ @code {
+    private List<PersonaDTO>? lista = null;
+    private string buscar = "";
+    private List<DepartamentoDTO>? listaDep = null;
+    private string buscarDep = "";
+    private List<PuestoDTO>? listaPuesto = null;
+    private string buscarPuesto = "";
+    private List<PerfilDTO>? listaPerfil = null;
+    private string buscarPerfil = "";
+
+    bool value;
+
+    void OnChange(bool? value, string name)
+    {
+    }
+
+    private async Task ObtenerUsuarios(string Valor = "")
+    {
+        var response = await personaServicio.Lista("Usuario", Valor);
+
+        if (response.EsCorrecto)
+        {
+            lista = (List<PersonaDTO>)response.Resultado!;
+            _spinnerService.Hide();
+
+        }
+        else
+        {
+            lista = new List<PersonaDTO>();
+            _spinnerService.Show();
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _spinnerService.Show();
+        await ObtenerUsuarios();
+        await ObtenerDepartamentos();
+        await ObtenerPuestos();
+        await ObtenerPerfiles();
+    }
+
+    private async Task Eliminar(PersonaDTO modelo)
+    {
+
+        SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Esta seguro?",
+                Text = $"Eliminar usuario: {modelo.NombreCompleto}",
+                // Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Si, eliminar",
+                CancelButtonText = "No, volver"
+            });
+
+        if (result.IsConfirmed)
+        {
+            var response = await personaServicio.Eliminar(modelo.IdPersona);
+
+            if (response.EsCorrecto)
+            {
+                await ObtenerUsuarios();
+                toastService.ShowSuccess("Usuario fue eliminado");
+            }
+            else
+                toastService.ShowSuccess(response.Mensaje!);
+        }
+    }
+
+    private async Task ObtenerDepartamentos(string Valor = "")
+    {
+        var response = await departamentoServicio.Lista(Valor);
+
+        if (response.EsCorrecto)
+        {
+            listaDep = (List<DepartamentoDTO>)response.Resultado!;
+            _spinnerService.Hide();
+        }
+        else
+        {
+            listaDep = new List<DepartamentoDTO>();
+            _spinnerService.Show();
+        }
+    }
+
+    private async Task EliminarDepartamento(DepartamentoDTO modelo)
+    {
+
+        SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Esta seguro?",
+                Text = $"Eliminar departamento: {modelo.Nombre}",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Si, eliminar",
+                CancelButtonText = "No, volver"
+            });
+
+        if (result.IsConfirmed)
+        {
+            var response = await departamentoServicio.Eliminar(modelo.IdDepartamento);
+
+            if (response.EsCorrecto)
+            {
+                await ObtenerDepartamentos();
+                toastService.ShowSuccess("Departamento eliminado");
+            }
+            else
+                toastService.ShowSuccess(response.Mensaje!);
+        }
+    }
+
+    private async Task ObtenerPuestos(string Valor = "")
+    {
+        var response = await puestoServicio.Lista(Valor);
+
+        if (response.EsCorrecto)
+        {
+            listaPuesto = (List<PuestoDTO>)response.Resultado!;
+            _spinnerService.Hide();
+        }
+        else
+        {
+            listaPuesto = new List<PuestoDTO>();
+            _spinnerService.Show();
+        }
+    }
+
+    private async Task ObtenerPerfiles(string Valor = "")
+    {
+        var response = await perfilServicio.Lista(Valor);
+
+        if (response.EsCorrecto)
+        {
+            listaPerfil = (List<PerfilDTO>)response.Resultado!;
+            _spinnerService.Hide();
+        }
+        else
+        {
+            listaPerfil = new List<PerfilDTO>();
+            _spinnerService.Show();
+        }
+    }
+
+    private async Task EliminarPuesto(PuestoDTO modelo)
+    {
+
+        SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Esta seguro?",
+                Text = $"Eliminar Puesto: {modelo.Nombre}",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Si, eliminar",
+                CancelButtonText = "No, volver"
+            });
+
+        if (result.IsConfirmed)
+        {
+            var response = await puestoServicio.Eliminar(modelo.IdPuesto);
+
+            if (response.EsCorrecto)
+            {
+                await ObtenerPuestos();
+                toastService.ShowSuccess("Puesto eliminado");
+            }
+            else
+                toastService.ShowSuccess(response.Mensaje!);
+        }
+    }
+
+    private async Task EliminarPerfil(PerfilDTO modelo)
+    {
+
+        SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Esta seguro?",
+                Text = $"Eliminar Perfil: {modelo.Nombre}",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Si, eliminar",
+                CancelButtonText = "No, volver"
+            });
+
+        if (result.IsConfirmed)
+        {
+            var response = await puestoServicio.Eliminar(modelo.IdPerfil);
+
+            if (response.EsCorrecto)
+            {
+                await ObtenerPuestos();
+                toastService.ShowSuccess("Perfil eliminado");
+            }
+            else
+                toastService.ShowSuccess(response.Mensaje!);
+        }
+    }
+
+
+    void OnChange(int index)
+    {
+    }
+
+    private async void nuevoUsuario()
+    {
+        await dialogService.OpenAsync<Usuario>("Nuevo Usuario",
+        new Dictionary<string, object>() { },
+        new DialogOptions() { Width = "700px", Height = "550px", Resizable = false, Draggable = true });
+
+        // _navServicio.NavigateTo("/usuario");
+    }
+
+    private async void editarUsuario(int id)
+    {
+        await dialogService.OpenAsync<Usuario>("Editar Usuario",
+                new Dictionary<string, object>() { { "Id", id } },
+                new DialogOptions() { Width = "700px", Height = "550px", Resizable = false, Draggable = true });
+
+        // _navServicio.NavigateTo("/usuario/" + id);
+    }
+
+    private async void nuevoDepartamento()
+    {
+        await dialogService.OpenAsync<Departamento>("Nuevo Departamento",
+        new Dictionary<string, object>() { },
+        new DialogOptions() { Width = "700px", Height = "280px", Resizable = false, Draggable = true });
+    }
+
+    private async void editarDepartamento(int id)
+    {
+        await dialogService.OpenAsync<Departamento>("Editar Departamento",
+                new Dictionary<string, object>() { { "Id", id } },
+                new DialogOptions() { Width = "700px", Height = "280px", Resizable = false, Draggable = true });
+    }
+
+    private async void nuevoPuesto()
+    {
+        await dialogService.OpenAsync<Puesto>("Nuevo Puesto",
+        new Dictionary<string, object>() { },
+        new DialogOptions() { Width = "700px", Height = "280px", Resizable = false, Draggable = true });
+    }
+
+    private async void editarPuesto(int id)
+    {
+        await dialogService.OpenAsync<Puesto>("Editar Puesto",
+                new Dictionary<string, object>() { { "Id", id } },
+                new DialogOptions() { Width = "700px", Height = "280px", Resizable = false, Draggable = true });
+    }
+
+    private async void nuevoPerfil()
+    {
+        await dialogService.OpenAsync<Perfil>("Nuevo Perfil",
+        new Dictionary<string, object>() { },
+        new DialogOptions() { Width = "700px", Height = "280px", Resizable = false, Draggable = true });
+    }
+
+    private async void editarPerfil(int id)
+    {
+        await dialogService.OpenAsync<Perfil>("Editar Perfil",
+                new Dictionary<string, object>() { { "Id", id } },
+                new DialogOptions() { Width = "700px", Height = "280px", Resizable = false, Draggable = true });
+    }
+
+}

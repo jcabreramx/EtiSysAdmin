@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\EtiSysAdmin.Server.props" />
+</Project>
